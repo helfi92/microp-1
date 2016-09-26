@@ -97,11 +97,25 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	float temp_m_x_m_data_2[State_dimension * State_dimension];
 	arm_matrix_instance_f32 temp_m_x_m_2 = {State_dimension, State_dimension, temp_m_x_m_data_2};
 	
+	//initialize temp_n_x_1
+	float temp_n_x_1_data[Measurement_dimension];
+	arm_matrix_instance_f32 temp_n_x_1 = {Measurement_dimension, 1, temp_n_x_1_data};
+	
+	//initialize temp_m_x_1
+	float temp_m_x_1_data[State_dimension];
+	arm_matrix_instance_f32 temp_m_x_1 = {State_dimension, 1, temp_m_x_1_data};
+	
 	//initialize f_transpose
 	float f_transpose_data[State_dimension * State_dimension];
 	arm_matrix_instance_f32 f_transpose = {State_dimension, State_dimension, f_transpose_data};
 	//calculate f_transpose
 	arm_mat_trans_f32(&kstate->f, &f_transpose);
+	
+	//initialize h_transpose
+	float h_transpose_data[Measurement_dimension * State_dimension];
+	arm_matrix_instance_f32 h_transpose = {Measurement_dimension, State_dimension, h_transpose_data};
+	//calculate h_transpose
+	arm_mat_trans_f32(&kstate->h, &h_transpose);
 	
 	//initialize I
 	float i_matrix_data[State_dimension * State_dimension]; //(m x m)
@@ -129,21 +143,34 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 		
 		// Eq'2
 		arm_mat_mult_f32(&kstate->f, &kstate->p, &temp_m_x_m_1); 			//temp1 = F * P
-		arm_mat_mult_f32(&temp_m_x_m_1, &f_transpose, &temp_m_x_m_2);	//temp2 = temp1 * F^T
+		arm_mat_mult_f32(&temp_m_x_m_1, &f_transpose, &temp_m_x_m_2);		//temp2 = temp1 * F^T
 		arm_mat_add_f32(&temp_m_x_m_2, &kstate->q, &p_predict);				//p_predict = temp2 + Q
 		//p_predict = F * P * F^t + Q
 		
 		// Eq'3
-//		kstate->k = p_predict * H^T * (H * p_predict * H^T + R)
+		arm_mat_mult_f32(&kstate->h, &p_predict, &temp_n_x_m);			//temp_nm = H * p_predict
+		arm_mat_mult_f32(&temp_n_x_m, &h_transpose, &temp_n_x_n_1);		//temp_nn1 = temp_nm * H^T
+		arm_mat_add_f32(&temp_n_x_n_1, &kstate->r, &temp_n_x_n_2);		//temp_nn2 = temp_nn1 + R
+		arm_mat_inverse_f32(&temp_n_x_n_2, &temp_n_x_n_1);				//temp_nn1 = tempnn2^-1
+		arm_mat_mult_f32(&h_transpose, &temp_n_x_n_1, &temp_m_x_n);		//temp_mn = H^T * temp_nn1
+		arm_mat_mult_f32(&p_predict, &temp_m_x_n, &kstate->k);			//K = p_predict * temp_mn		
+		//kstate->k = p_predict * H^T * (H * p_predict * H^T + R)
 		
 		// Eq'4
-//		kstate->p = (I - kstate->k * kstate->h) * p_predict;
-		
-		// Update x
-//		kstate->x = x_predict + kstate->k * (InputArray[i] - kstate->h * x_predict);
+		arm_mat_mult_f32(&kstate->k, &kstate->h, &temp_m_x_m_1);		//temp_mm1 = K * H
+		arm_mat_sub_f32(&i_matrix, &temp_m_x_m_1, &temp_m_x_m_2);		//temp_mm2 = I - temp_mm1
+		arm_mat_mult_f32(&temp_m_x_m_2, &p_predict &kstate->p);			//kstate->p = temp_mm2 * P_predict
+		//kstate->p = (I - K * H) * p_predict;
 		
 		// Eq'5
-//		OutputArray[i] = kstate->x;
+		arm_mat_mult_f32(&kstate->h, &x_predict, &temp_n_1);		//temp_n1 = H * x_predict
+		arm_mat_sub_f32(&InputArray[i], &temp_n_x_1, &temp_n_x_1);		//temp_n1 = InputArray[i] - temp_n1		//I'm reusing temp_n1 since it's subtraction - TODO: check if this is ok
+		arm_mat_mult_f32(&kstate->k, &temp_n_x_1, &temp_m_x_1);		//temp_m1 = K * temp_n1
+		arm_mat_add_f32(&x_predict, &temp_m_x_1, &kstate->x);		//kstate->x = x_predict + temp_m1
+		//kstate->x = x_predict + K * (InputArray[i] - H * x_predict);
+		
+		//OutputArray[i] = kstate->x;
+		OutputArray[i] = kstate->x;
 		
 		printf("%f\n",OutputArray[i]);
 	}
