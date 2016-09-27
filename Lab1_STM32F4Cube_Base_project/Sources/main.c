@@ -19,8 +19,8 @@ extern void kalman_asm(float *input, float* kda, int arrLen, kalman_state *ptr);
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension);
 
 int main() {
-	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //input	
-	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out
+	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //input [z_1, z_2, ..., z_w] (n x w)
+	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
 	int state_dimension = 3; //we'll refer to this as m
 	int measurement_dimension = 2; //we'll refer to this as n					//TODO: add check that m>=n
 	//kalman_state initializations
