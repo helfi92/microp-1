@@ -241,14 +241,16 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 
 			arm_mat_sub_f32(&z_i, &temp_n_x_1, &temp_n_x_1);		//temp_n1 = InputArray[current_column] - temp_n1		//current_column'm reusing temp_n1 since it's subtraction - TODO: check if this is ok
 			
-		//save this into the 
-//		kstate->residuals
+		//save this into the residuals
+		for(current_row = 0; current_row < State_dimension; current_row++) {
+//			ResidualArray[current_row * w + current_column] = (float)(*(temp_n_x_1.pData + current_row));
+			kstate->residuals.pData[current_row * w + current_column] = (float)(*(temp_n_x_1.pData + current_row));
+		}
 		
 		arm_mat_mult_f32(&kstate->k, &temp_n_x_1, &temp_m_x_1);		//temp_m1 = K * temp_n1
 		arm_mat_add_f32(&x_predict, &temp_m_x_1, &kstate->x);		//kstate->x = x_predict + temp_m1
 		
 		// save to filtered array
-		int current_row;
 		for(current_row = 0; current_row < State_dimension; current_row++) {
 			OutputArray[current_row * w + current_column] = (float)(*(kstate->x.pData + current_row));
 		}
