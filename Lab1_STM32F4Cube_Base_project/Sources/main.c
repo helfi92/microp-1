@@ -9,6 +9,7 @@ typedef struct kalman_state{
 	arm_matrix_instance_f32 k;
 	arm_matrix_instance_f32 f;
 	arm_matrix_instance_f32 h;
+	arm_matrix_instance_f32 residuals; //added this to store the residuals
 } kalman_state;
 
 #define LEN 10
@@ -19,8 +20,9 @@ extern void kalman_asm(float *input, float* kda, int arrLen, kalman_state *ptr);
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension);
 
 int main() {
-	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //input [z_1, z_2, ..., z_w] (n x w)
-	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
+	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //input [z_1, z_2, ..., z_Length] (n x w)
+	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ...] (m x w)
+	int w = LEN/n //w is number of columns
 	int state_dimension = 3; //we'll refer to this as m
 	int measurement_dimension = 2; //we'll refer to this as n					//TODO: add check that m>=n
 	//kalman_state initializations
@@ -63,8 +65,44 @@ int main() {
 	arm_matrix_instance_f32 h = {measurement_dimension, state_dimension, h_data}; //TODO: add a check that dimensions of f match up with given state_dimension
 	ks.h = h;
 	
+	//Residuals
+	float r_data[] = [measurement_dimension]; //(n x n)
+	arm_matrix_instance_f32 residuals = {measurement_dimension, measurement_dimension, r_data};
+	ks.residuals = residuals;
 	
 	Kalmanfilter_C(input, kda, &ks, LEN, state_dimension, measurement_dimension);
+	
+/*-------------------------------------Part3----------------------------------------- */	
+//CMSIS-DSP
+//---------
+
+
+	
+	//initialize temp_n_x_1
+	float temp_n_x_1_data[Measurement_dimension];
+	arm_matrix_instance_f32 temp_n_x_1 = {Measurement_dimension, 1, temp_n_x_1_data};
+	
+	int i;
+	for (i=0; i<length; i++){ //length is the length of the input array
+	
+	
+		arm_mat_mult_f32(&ks.h, , &temp_n_x_1);		//temp_n1 = H * input_i
+		arm_matrix_instance_f32 input_i = {Measurement_dimension, 1, &(InputArray[i])}; //storing InputArray[i] in an (n x 1) matrix 
+		arm_mat_sub_f32(&input_i, &temp_n_x_1, &temp_n_x_1);		//temp_n1 = InputArray[i] - temp_n1		
+																	//I'm reusing temp_n1 since it's subtraction - TODO: check if this is ok
+
+	//incriment input data array pointer																
+	}
+	
+	
+
+//Mean
+
+arm_mean_f32 (float32_t *pSrc, uint32_t blockSize, float32_t *pResult);
+	
+	
+	
+	
 	return 0;
 }
 
@@ -137,8 +175,8 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	
 	arm_matrix_instance_f32 i_matrix = {State_dimension, State_dimension, i_matrix_data};
 		
-	int i;
-	for(i = 0; i < Length; i++) {		
+	int current_column, current_row;
+	for(current_column = 0; current_column < w; current_column++) {		
 		// Eq'1
 		arm_mat_mult_f32(&kstate->f, &kstate->x, &x_predict);
 		
@@ -193,15 +231,26 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 				
 		// Eq'5
 		arm_mat_mult_f32(&kstate->h, &x_predict, &temp_n_x_1);		//temp_n1 = H * x_predict
-		arm_matrix_instance_f32 input_i = {Measurement_dimension, 1, &(InputArray[i])}; //storing InputArray[i] in an (n x 1) matrix 
-		arm_mat_sub_f32(&input_i, &temp_n_x_1, &temp_n_x_1);		//temp_n1 = InputArray[i] - temp_n1		//I'm reusing temp_n1 since it's subtraction - TODO: check if this is ok
+		
+		//load data from InputArray to z_i
+		float z_i_data = [Measurement_dimension];
+		for (current_row = 0; current_row < n; current_row++){
+			z_i_data[current_row] = InputArray[(current_row * w)+current_column]
+		}
+			arm_matrix_instance_f32 z_i = {Measurement_dimension, 1, z_i_data};
+
+			arm_mat_sub_f32(&z_i, &temp_n_x_1, &temp_n_x_1);		//temp_n1 = InputArray[current_column] - temp_n1		//current_column'm reusing temp_n1 since it's subtraction - TODO: check if this is ok
+			
+		//save this into the 
+//		kstate->residuals
+		
 		arm_mat_mult_f32(&kstate->k, &temp_n_x_1, &temp_m_x_1);		//temp_m1 = K * temp_n1
 		arm_mat_add_f32(&x_predict, &temp_m_x_1, &kstate->x);		//kstate->x = x_predict + temp_m1
 		
 		// save to filtered array
-		int save_index;
-		for(save_index = 0; save_index < State_dimension; save_index++) {
-			OutputArray[save_index] = (float)(*(kstate->x.pData + save_index));
+		int current_row;
+		for(current_row = 0; current_row < State_dimension; current_row++) {
+			OutputArray[current_row * w + current_column] = (float)(*(kstate->x.pData + current_row));
 		}
 		
 		printf("----------- Output---------\n");
