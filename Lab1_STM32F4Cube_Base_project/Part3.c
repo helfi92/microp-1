@@ -21,9 +21,15 @@ void Part3(float* InputArray, float* OutputArray,float* ResidualArray, int m, in
 	//Mean of the residuals (n x 1)
 	//-----------
 	
-	
 	//Standard deviation of the residuals (n x 1)
 	//-----------
+	float std [n];
+	int curr_row;
+	for (curr_row=0; curr_row<n; curr_row++){
+		arm_std_f32(&ResidualArray[curr_row*w], w, &std[curr_row*w]);
+		//possibly this:	arm_std_f32(&ResidualArray[curr_row*w*sizeof(float32_t)], w, &std[curr_row*w*sizeof(float32_t)]);
+	}
+		//print the std array
 
 	//Correlation between the residuals and the observed data (ie the InputArray) (n x 1)
 	//-----------
