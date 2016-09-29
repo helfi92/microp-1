@@ -12,9 +12,14 @@ typedef struct kalman_state{
 	arm_matrix_instance_f32 residuals;
 } kalman_state;
 
+typedef struct dsp{
+	float32_t standard_deviation;
+} dsp;
+
 
 extern void kalman_asm(float *input, float* kda, int arrLen, kalman_state *ptr); //
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension);
+int dsp_c(float* dsp_input, float* dsp_input2, int State_dimension, int Measurement_dimension);
 
 int main() {
 	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3};
@@ -121,9 +126,64 @@ int main() {
 	arm_mat_init_f32(&ks.residuals, measurement_dimension, measurement_dimension, (float32_t *)residual_data); //(n x n)
 	
 	// Part 2
-	Kalmanfilter_C(input, kda, &ks, len, state_dimension, measurement_dimension);
+	//Kalmanfilter_C(input, kda, &ks, len, state_dimension, measurement_dimension);
+	
+	// Part 3
+	float dsp_input[] = {1.0, 4.0, 7.0, 2.0, 5.0, 6.0};
+	float dsp_input2[] = {2.0, 3.0, 6.0, 6.0, 3.0, 5.0};
+	dsp_c(dsp_input, dsp_input2, 3, 2);
 	
 	return 0;
+}
+
+int dsp_c(float* dsp_input, float* dsp_input2, int State_dimension, int Measurement_dimension){
+	// Standard Deviation
+	float32_t standard_deviation[Measurement_dimension];
+	float32_t arithmetic_mean_arr[State_dimension];
+	float32_t temp_arr[State_dimension];
+	
+	int column;
+	int row;
+	// Arithmetic Mean (x bar)
+	for(row = 0; row < State_dimension; row++) {
+		// Adding each input
+		for(column = 0; column < Measurement_dimension; column++) {
+			printf("will be adding %f with %f\n", temp_arr[row], dsp_input[row * Measurement_dimension + column]);
+			arithmetic_mean_arr[row] = arithmetic_mean_arr[row] + dsp_input[row * Measurement_dimension + column];
+		}
+		// Divide by N
+		arithmetic_mean_arr[row] = arithmetic_mean_arr[row] / Measurement_dimension;
+	}
+	// Standard Deviation
+	for(row = 0; row < State_dimension; row++) {
+		// Subtract and square
+		for(column = 0; column < Measurement_dimension; column++) {
+			temp_arr[row] = dsp_input[row * Measurement_dimension + column] - arithmetic_mean_arr[row];
+			temp_arr[row] = temp_arr[row] * temp_arr[row];
+			standard_deviation[row] = standard_deviation[row] + temp_arr[row];
+		}
+		// Divide and square root
+		standard_deviation[row] = sqrt(standard_deviation[row] / Measurement_dimension);	
+	}
+	
+	int t;
+	for(t = 0; t < 3; t++){
+		printf("diffArray %f\n", standard_deviation[t]);
+	}
+	
+	
+	// Subtraction of original data and filtered data
+//	for (i=0; i < Measurement_dimension; i++) {
+//		analysisOut->diffArr[i] = diffArray[i] = outputArray[i] - inputArray[i];
+//		meanDiff += diffArray[i];
+//}
+	
+	
+	for(row = 0; row < State_dimension; row++) {
+		for(column = 0; column < Measurement_dimension; column++) {
+			printf("Row %d with value: %f\n", row, dsp_input[row * Measurement_dimension + column]);
+		}
+	}
 }
 
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension) {
