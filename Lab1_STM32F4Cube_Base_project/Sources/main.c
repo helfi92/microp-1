@@ -20,9 +20,12 @@ typedef struct dsp{
 extern void kalman_asm(float *input, float* kda, int arrLen, kalman_state *ptr); //
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension);
 int dsp_c(float* dsp_input, float* dsp_input2, int State_dimension, int Measurement_dimension);
+int Part3(float* InputArray, float* OutputArray,float* ResidualArray, int m, int n, int w, int lag);
+int PrintArray(float *input, int num_rows, int num_columns);
 
 int main() {
-	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3};
+/*
+	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //(n x m)
 	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
 	// In the comments, we refer to state_dimension as m
 	int state_dimension = 1;
@@ -121,7 +124,7 @@ int main() {
 	// Initialize h
 	arm_mat_init_f32(&ks.h, measurement_dimension, state_dimension, (float32_t *)h_data); //TODO: add a check that dimensions of f match up with given state_dimension
 	
-	// Residuals
+	// Initialize Residuals
 	float residual_data[measurement_dimension]; 
 	arm_mat_init_f32(&ks.residuals, measurement_dimension, measurement_dimension, (float32_t *)residual_data); //(n x n)
 	
@@ -129,9 +132,43 @@ int main() {
 	//Kalmanfilter_C(input, kda, &ks, len, state_dimension, measurement_dimension);
 	
 	// Part 3
-	float dsp_input[] = {1.0, 4.0, 7.0, 2.0, 5.0, 6.0};
-	float dsp_input2[] = {2.0, 3.0, 6.0, 6.0, 3.0, 5.0};
-	dsp_c(dsp_input, dsp_input2, 3, 2);
+//	float dsp_input[] = {1.0, 4.0, 7.0, 2.0, 5.0, 6.0};
+//	float dsp_input2[] = {2.0, 3.0, 6.0, 6.0, 3.0, 5.0};
+//	dsp_c(dsp_input, dsp_input2, 3, 2);
+	
+*/	
+	
+	//Testing Part 3 data
+//	float input[] = {2.0, 3.0, 6.0, 6.0, 3.0, 5.0}; //(n x m)
+//	float input[] = {12.0, 44.0, 6.0, 8.0, 6.0, 4.0}; //(n x m)
+		float input[] = {2.0, 4.0, 6.0, 8.0, 6.0, 4.0}; //(n x m)
+
+	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
+//	float residulas[] = {1.0, 4.0, 7.0, 2.0, 5.0, 6.0}; //(n x m)
+	float residulas[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}; //(n x m)
+	int state_dimension = 3;
+	int measurement_dimension = 2;
+	int len = 6;
+	struct kalman_state ks;
+	
+//	//Testing Part 3 1D
+//	float input[] = {1.0, 4.0, 7.0}; //(n x m)
+//	float kda[] = {0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
+//	float residulas[] = {1.0, 4.0, 7.0}; //(n x m)
+//	int state_dimension = 1;
+//	int measurement_dimension = 1;
+//	int len = 3;
+//	struct kalman_state ks;
+	
+	//ks.residuals.pData = residulas;
+	
+	// Initialize Residuals
+	float residual_data[measurement_dimension]; 
+	arm_mat_init_f32(&ks.residuals, measurement_dimension, measurement_dimension, (float32_t *)residual_data); //(n x n)
+	
+	Part3(input, kda, residulas, state_dimension, measurement_dimension, len/measurement_dimension, 0);
+	//Part3(input, kda, ks.residuals.pData, state_dimension, measurement_dimension, len/measurement_dimension, 0); //TODO: try calling the residuals like this from the ks struct
+	// ks->residuals.pData is a pointer to the ResidualArray
 	
 	return 0;
 }
@@ -184,6 +221,105 @@ int dsp_c(float* dsp_input, float* dsp_input2, int State_dimension, int Measurem
 			printf("Row %d with value: %f\n", row, dsp_input[row * Measurement_dimension + column]);
 		}
 	}
+}
+/**
+** Paramaters:
+** pointer to InpuyArray (n x w)
+** pointer to OutputArray (m x w)
+** pointer to ResidualArray (n x w)
+** m = State_dimension
+** n = Measurement_dimension
+** w = number of columns
+**/
+int Part3(float* InputArray, float* OutputArray,float* ResidualArray, int m, int n, int w, int lag){ //Remember to define this at the top of main and to call it
+
+//Using CMSIS-DSP
+//---------------
+	printf("-------Residual Array-------\n");
+	PrintArray(ResidualArray, n, w);
+	
+	//Mean of the residuals (n x 1)
+	//-----------
+	float mean[n];
+	int curr_row;
+	for (curr_row=0; curr_row<n; curr_row++){
+		arm_mean_f32(ResidualArray + curr_row * w, w, mean + curr_row);
+	}
+		//print the std array
+	printf("-------Mean-------\n");
+	PrintArray(mean, n, 1);
+	
+	//Standard deviation of the residuals (n x 1)
+	//-----------
+	float std[n];
+	for (curr_row=0; curr_row<n; curr_row++){
+		arm_std_f32(ResidualArray + curr_row * w, w, std + curr_row);
+	}
+		//print the std array
+	printf("-------Standard Deviation-------\n");
+	PrintArray(std, n, 1);
+
+
+	//Correlation between the residuals and the observed data (ie the InputArray) (n x 1)
+	//-----------
+	int corr_length = n*2+1;
+	float corr_lags[corr_length];
+//	for (curr_row=0; curr_row<n; curr_row++){
+//		arm_correlate_f32(ResidualArray + curr_row * w, w, mean + curr_row);
+//	}
+	
+	//correlation in 1D
+	arm_correlate_f32(ResidualArray, w, InputArray, w, corr_lags);
+	
+	float corr_coef[corr_length * n];
+	//loop
+//	for (curr_row = 0; curr_row < n; curr_row++){
+//	}
+	corr_coef[0] = corr_lags[w-1];
+	
+	float sum_1[n];
+	float sum_2[n];
+	int i;
+	//loop to initialize to 0
+	sum_1[0] = 0.0;
+	sum_2[0] = 0.0;	
+	for (i=0; i<w; i++){
+		sum_1[0] += ResidualArray[i]*ResidualArray[i];
+		sum_2[0] += InputArray[i]*InputArray[i];
+	}
+	float norm[n];
+	float root_1[n];
+	float root_2[n];
+	for (i=0; i<w; i++){
+		arm_sqrt_f32(sum_1[0 + i], root_1 + 0 + i);//If I have errors, then check this
+		arm_sqrt_f32(sum_2[0 + i], root_2 + 0 + i);
+	}		
+
+	norm[0] = root_1[0] * root_2[0];
+	corr_coef[0] = corr_coef[0] / norm[0];
+	
+	
+	
+		//print the std array
+	printf("-------Correlation-------\n");
+	
+	printf("-------Residual Array-------\n");
+	PrintArray(ResidualArray, n, w);
+	printf("-------Observed Data Array-------\n");
+	PrintArray(InputArray, n, w);
+	
+	printf("-------Correlation vector with lags-------\n");
+	PrintArray(corr_lags, 1, corr_length);
+	
+	printf("-------Correlation cefficient-------\n");
+	PrintArray(corr_coef, 1, 1);
+	
+	
+	
+	//autocorrelation of the residuals (with a lag of one time step and a lag of two time steps) (n x 1)
+	//-----------
+
+	return 0;
 }
 
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension) {
@@ -359,5 +495,21 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 		// --------------------------------------				
 	}
 	
+	return 0;
+}
+
+
+
+//print matrix - function provided by Anthony Ugochukwu Ubah
+
+int PrintArray(float *input, int num_rows, int num_columns){
+	int i, j;
+	for (i = 0; i < num_rows; i++){
+		for (j = 0; j < num_columns; j++){
+			printf("%f ", input[num_columns * i + j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
 	return 0;
 }
