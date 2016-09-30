@@ -9,7 +9,7 @@ typedef struct kalman_state{
 	arm_matrix_instance_f32 k;
 	arm_matrix_instance_f32 f;
 	arm_matrix_instance_f32 h;
-	arm_matrix_instance_f32 residuals;
+//	arm_matrix_instance_f32 residuals;
 } kalman_state;
 
 typedef struct dsp{
@@ -19,28 +19,28 @@ typedef struct dsp{
 
 extern void kalman_asm(float *input, float* kda, int arrLen, kalman_state *ptr); //
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int Length, int State_dimension, int Measurement_dimension);
-int dsp_c(float* dsp_input, float* dsp_input2, int State_dimension, int Measurement_dimension);
-int Part3(float* InputArray, float* OutputArray,float* ResidualArray, int m, int n, int w, int lag);
+int dsp_c(float* dsp_input, float* dsp_input_2, int w, int n);
+int autocorrelation(float* dsp_input, int n, int w, int step);
 int PrintArray(float *input, int num_rows, int num_columns);
-
 int main() {
-/*
-	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //(n x m)
-	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
+	float input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //(n x w)
+	//float input[] = {2.0, 4.0, 6.0 ,8.0, 6.0, 4.0}; //(n x w)
+	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
 	// In the comments, we refer to state_dimension as m
 	int state_dimension = 1;
 	// In the comments, we refer to measurement_dimension as n
 	int measurement_dimension = 1;
 	int len = 10;
+	int w = len / measurement_dimension;
 	struct kalman_state ks;
 	// q_data is (m x m)
 	float q_data[] = {0.1};
-	
+		
 	// Error check for q
 	int q_size = (sizeof(q_data)/sizeof(q_data[0]));
 	if (q_size != state_dimension * state_dimension) {
 		printf("q size mismatch\n");
-		return -1;
+		//return -1;
 	}		
 	
 	// Initialize q
@@ -53,7 +53,7 @@ int main() {
 	int r_size = (sizeof(r_data)/sizeof(r_data[0]));
 	if (r_size != measurement_dimension * measurement_dimension) {
 		printf("r size mismatch\n");
-		return -1;
+		//return -1;
 	}	
 	
 	// Initialize r
@@ -66,7 +66,7 @@ int main() {
 	int x_size = (sizeof(x_data)/sizeof(x_data[0]));
 	if (x_size != state_dimension) {
 		printf("x size mismatch\n");
-		return -1;
+		//return -1;
 	}	
 	
 	// Initialize x
@@ -79,7 +79,7 @@ int main() {
 	int p_size = (sizeof(p_data)/sizeof(p_data[0]));
 	if (p_size != state_dimension * state_dimension) {
 		printf("p size mismatch\n");
-		return -1;
+		//return -1;
 	}
 	
 	// Initialize p
@@ -92,7 +92,7 @@ int main() {
 	int k_size = (sizeof(k_data)/sizeof(k_data[0]));
 	if (k_size != state_dimension * measurement_dimension) {
 		printf("k size mismatch\n");
-		return -1;
+		//return -1;
 	}
 	
 	// Initialize k
@@ -105,7 +105,7 @@ int main() {
 	int f_size = (sizeof(f_data)/sizeof(f_data[0]));
 	if (f_size != state_dimension * state_dimension) {
 		printf("f size mismatch\n");
-		return -1;
+		//return -1;
 	}	
 	
 	// Initialize f
@@ -118,207 +118,149 @@ int main() {
 	int h_size = (sizeof(h_data)/sizeof(h_data[0]));
 	if (h_size != state_dimension * measurement_dimension) {
 		printf("h size mismatch\n");
-		return -1;
+		//return -1;
 	}	
 	
 	// Initialize h
 	arm_mat_init_f32(&ks.h, measurement_dimension, state_dimension, (float32_t *)h_data); //TODO: add a check that dimensions of f match up with given state_dimension
 	
-	// Initialize Residuals
-	float residual_data[measurement_dimension]; 
-	arm_mat_init_f32(&ks.residuals, measurement_dimension, measurement_dimension, (float32_t *)residual_data); //(n x n)
+//	// Initialize Residuals
+//	float32_t residual_data[measurement_dimension]; 
+//	arm_mat_init_f32(&ks.residuals, measurement_dimension, w, (float32_t *)residual_data); // (n x w)
+
+//	printf("\n--------Residuals should be all zeros--------\n");
+//	PrintArray(ks.residuals.pData, measurement_dimension, w);
 	
 	// Part 2
-	//Kalmanfilter_C(input, kda, &ks, len, state_dimension, measurement_dimension);
+	Kalmanfilter_C(input, kda, &ks, len, state_dimension, measurement_dimension);
 	
 	// Part 3
-//	float dsp_input[] = {1.0, 4.0, 7.0, 2.0, 5.0, 6.0};
-//	float dsp_input2[] = {2.0, 3.0, 6.0, 6.0, 3.0, 5.0};
-//	dsp_c(dsp_input, dsp_input2, 3, 2);
+	float dsp_input_2[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //(n x w)
+	//float dsp_input_2[] = {2.0, 4.0, 6.0 ,8.0, 6.0, 4.0}; //(n x w)
+	float dsp_input[] = {0.1, 2.143798, -1.266482, 3.225555, 2.103483, 1.3489227, 7.037164, -5.948739, -1.66637, 1.833214};
+	//float dsp_input[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 	
-*/	
-	
-	//Testing Part 3 data
-//	float input[] = {2.0, 3.0, 6.0, 6.0, 3.0, 5.0}; //(n x m)
-//	float input[] = {12.0, 44.0, 6.0, 8.0, 6.0, 4.0}; //(n x m)
-		float input[] = {2.0, 4.0, 6.0, 8.0, 6.0, 4.0}; //(n x m)
-
-	float kda[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
-//	float residulas[] = {1.0, 4.0, 7.0, 2.0, 5.0, 6.0}; //(n x m)
-	float residulas[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}; //(n x m)
-	int state_dimension = 3;
-	int measurement_dimension = 2;
-	int len = 6;
-	struct kalman_state ks;
-	
-//	//Testing Part 3 1D
-//	float input[] = {1.0, 4.0, 7.0}; //(n x m)
-//	float kda[] = {0.0, 0.0, 0.0, 0.0}; //out [x_1, x,2, ..., x_w] (m x w)
-//	float residulas[] = {1.0, 4.0, 7.0}; //(n x m)
-//	int state_dimension = 1;
-//	int measurement_dimension = 1;
-//	int len = 3;
-//	struct kalman_state ks;
-	
-	//ks.residuals.pData = residulas;
-	
-	// Initialize Residuals
-	float residual_data[measurement_dimension]; 
-	arm_mat_init_f32(&ks.residuals, measurement_dimension, measurement_dimension, (float32_t *)residual_data); //(n x n)
-	
-	Part3(input, kda, residulas, state_dimension, measurement_dimension, len/measurement_dimension, 0);
-	//Part3(input, kda, ks.residuals.pData, state_dimension, measurement_dimension, len/measurement_dimension, 0); //TODO: try calling the residuals like this from the ks struct
-	// ks->residuals.pData is a pointer to the ResidualArray
+//	printf("residuals end result:\n");
+//	PrintArray(ks.residuals.pData, measurement_dimension, w);
+//	dsp_c(ks.residuals.pData, input, w, measurement_dimension);
+	//autocorrelation(ks.residuals.pData, measurement_dimension, w, 1);
+	//dsp_c(dsp_input, dsp_input_2, measurement_dimension, w);
+	//autocorrelation(dsp_input, 3, 2, 1);
 	
 	return 0;
 }
 
-int dsp_c(float* dsp_input, float* dsp_input2, int State_dimension, int Measurement_dimension){
+int autocorrelation(float* dsp_input, int w, int n, int lag){
+	int i, j, counter;
+	float dsp_input_new[n * (w - lag)];
+	float dsp_input_new_2[n * (w - lag)];
+	//first
+	counter = 0;
+	j = lag;
+	for(i = 0; i < n * w; i++) {
+		dsp_input_new[i] = dsp_input[j];
+		counter++;
+		
+		if(counter == (w - lag)) { 
+			j = j + lag;
+			counter = 0;
+		}
+		j++;
+	}
+	//second
+	counter = 0;
+	j = 0;
+	for(i = 0; i < n * w; i++) {
+		dsp_input_new_2[i] = dsp_input[j];
+		counter++;
+		
+		if(counter == (w - lag)) { 
+			j = j + lag;
+			counter = 0;
+		}
+		j++;
+	}
+	
+	PrintArray(dsp_input, n, w);
+	PrintArray(dsp_input_new, n, w - lag);
+	
+	PrintArray(dsp_input, n, w);
+	PrintArray(dsp_input_new_2, n, w - lag);
+	
+	dsp_c(dsp_input_new, dsp_input_new_2, w - lag, 2);
+}
+
+int dsp_c(float* dsp_input, float* dsp_input_2, int n, int w){		
 	// Standard Deviation
-	float32_t standard_deviation[Measurement_dimension];
-	float32_t arithmetic_mean_arr[State_dimension];
-	float32_t temp_arr[State_dimension];
+	float32_t standard_deviation[w], correlation[w];
+	float32_t mean_diff_input_1[w * n], mean_diff_input_2[w * n];
+	float32_t arithmetic_mean_arr[n], arithmetic_mean_arr_2[n];
+	float32_t temp_arr[n], temp_arr_2[n], temp_arr_square[w], temp_arr_2_square[w];
+	float32_t corr_numerator[w], corr_denominator[w];
 	
 	int column;
 	int row;
 	// Arithmetic Mean (x bar)
-	for(row = 0; row < State_dimension; row++) {
+	for(row = 0; row < n; row++) {
 		// Adding each input
-		for(column = 0; column < Measurement_dimension; column++) {
-			printf("will be adding %f with %f\n", temp_arr[row], dsp_input[row * Measurement_dimension + column]);
-			arithmetic_mean_arr[row] = arithmetic_mean_arr[row] + dsp_input[row * Measurement_dimension + column];
+		for(column = 0; column < w; column++) {
+			arithmetic_mean_arr[row] = arithmetic_mean_arr[row] + dsp_input[row * w + column];
+			arithmetic_mean_arr_2[row] = arithmetic_mean_arr_2[row] + dsp_input_2[row * w + column];
 		}
 		// Divide by N
-		arithmetic_mean_arr[row] = arithmetic_mean_arr[row] / Measurement_dimension;
+		arithmetic_mean_arr[row] = arithmetic_mean_arr[row] / w;
+		arithmetic_mean_arr_2[row] = arithmetic_mean_arr_2[row] / w;
 	}
 	// Standard Deviation
-	for(row = 0; row < State_dimension; row++) {
+	for(row = 0; row < n; row++) {
 		// Subtract and square
-		for(column = 0; column < Measurement_dimension; column++) {
-			temp_arr[row] = dsp_input[row * Measurement_dimension + column] - arithmetic_mean_arr[row];
+		for(column = 0; column < w; column++) {
+			temp_arr[row] = dsp_input[row * w + column] - arithmetic_mean_arr[row];
+			temp_arr_2[row] = dsp_input_2[row * w + column] - arithmetic_mean_arr_2[row];
+			
+			// Store mean differences for correlation
+			mean_diff_input_1[row * w + column] = temp_arr[row];
+			mean_diff_input_2[row * w + column] = temp_arr_2[row];
+			
+			
 			temp_arr[row] = temp_arr[row] * temp_arr[row];
 			standard_deviation[row] = standard_deviation[row] + temp_arr[row];
 		}
 		// Divide and square root
-		standard_deviation[row] = sqrt(standard_deviation[row] / Measurement_dimension);	
+		standard_deviation[row] = sqrt(standard_deviation[row] / w);	
 	}
 	
-	int t;
-	for(t = 0; t < 3; t++){
-		printf("diffArray %f\n", standard_deviation[t]);
+	// Correlation
+	for(row = 0; row < n; row++) {
+		for(column = 0; column < w; column++) {
+			temp_arr[column] = dsp_input[row * w + column] - mean_diff_input_1[row * w + column];
+			temp_arr_2[column] = dsp_input_2[row * w + column] - mean_diff_input_2[row * w + column];
+			
+			// (x - x(bar))^2 & (y - y(bar))^2
+			temp_arr_square[column] = temp_arr[column] * temp_arr[column];
+			temp_arr_2_square[column] = temp_arr_2[column] * temp_arr_2[column];
+				
+			// corr_numerator will contain sum from 1 to n of (x - x(bar))(y - y(bar))
+			corr_numerator[row] = corr_numerator[row] + mean_diff_input_1[column] * mean_diff_input_2[column];		
+			// correlation denominator formula intermediate i.e. multiplication without square root
+			corr_denominator[row] = sqrt(temp_arr_square[column] * temp_arr_2_square[column]);
+		}		
+		correlation[row] = corr_numerator[row]/corr_denominator[row];	
 	}
 	
-	
-	// Subtraction of original data and filtered data
-//	for (i=0; i < Measurement_dimension; i++) {
-//		analysisOut->diffArr[i] = diffArray[i] = outputArray[i] - inputArray[i];
-//		meanDiff += diffArray[i];
-//}
-	
-	
-	for(row = 0; row < State_dimension; row++) {
-		for(column = 0; column < Measurement_dimension; column++) {
-			printf("Row %d with value: %f\n", row, dsp_input[row * Measurement_dimension + column]);
-		}
-	}
+	printf("correlation result: \n");
+	PrintArray(correlation, n, 1);
 }
-/**
-** Paramaters:
-** pointer to InpuyArray (n x w)
-** pointer to OutputArray (m x w)
-** pointer to ResidualArray (n x w)
-** m = State_dimension
-** n = Measurement_dimension
-** w = number of columns
-**/
-int Part3(float* InputArray, float* OutputArray,float* ResidualArray, int m, int n, int w, int lag){ //Remember to define this at the top of main and to call it
 
-//Using CMSIS-DSP
-//---------------
-	printf("-------Residual Array-------\n");
-	PrintArray(ResidualArray, n, w);
-	
-	//Mean of the residuals (n x 1)
-	//-----------
-	float mean[n];
-	int curr_row;
-	for (curr_row=0; curr_row<n; curr_row++){
-		arm_mean_f32(ResidualArray + curr_row * w, w, mean + curr_row);
+int PrintArray(float *input, int num_rows, int num_columns){
+	int i, j;
+	for (i = 0; i < num_rows; i++){
+		for (j = 0; j < num_columns; j++){
+			printf("%f ", input[num_columns * i + j]);
+		}
+		printf("\n");
 	}
-		//print the std array
-	printf("-------Mean-------\n");
-	PrintArray(mean, n, 1);
-	
-	//Standard deviation of the residuals (n x 1)
-	//-----------
-	float std[n];
-	for (curr_row=0; curr_row<n; curr_row++){
-		arm_std_f32(ResidualArray + curr_row * w, w, std + curr_row);
-	}
-		//print the std array
-	printf("-------Standard Deviation-------\n");
-	PrintArray(std, n, 1);
-
-
-	//Correlation between the residuals and the observed data (ie the InputArray) (n x 1)
-	//-----------
-	int corr_length = n*2+1;
-	float corr_lags[corr_length];
-//	for (curr_row=0; curr_row<n; curr_row++){
-//		arm_correlate_f32(ResidualArray + curr_row * w, w, mean + curr_row);
-//	}
-	
-	//correlation in 1D
-	arm_correlate_f32(ResidualArray, w, InputArray, w, corr_lags);
-	
-	float corr_coef[corr_length * n];
-	//loop
-//	for (curr_row = 0; curr_row < n; curr_row++){
-//	}
-	corr_coef[0] = corr_lags[w-1];
-	
-	float sum_1[n];
-	float sum_2[n];
-	int i;
-	//loop to initialize to 0
-	sum_1[0] = 0.0;
-	sum_2[0] = 0.0;	
-	for (i=0; i<w; i++){
-		sum_1[0] += ResidualArray[i]*ResidualArray[i];
-		sum_2[0] += InputArray[i]*InputArray[i];
-	}
-	float norm[n];
-	float root_1[n];
-	float root_2[n];
-	for (i=0; i<w; i++){
-		arm_sqrt_f32(sum_1[0 + i], root_1 + 0 + i);//If I have errors, then check this
-		arm_sqrt_f32(sum_2[0 + i], root_2 + 0 + i);
-	}		
-
-	norm[0] = root_1[0] * root_2[0];
-	corr_coef[0] = corr_coef[0] / norm[0];
-	
-	
-	
-		//print the std array
-	printf("-------Correlation-------\n");
-	
-	printf("-------Residual Array-------\n");
-	PrintArray(ResidualArray, n, w);
-	printf("-------Observed Data Array-------\n");
-	PrintArray(InputArray, n, w);
-	
-	printf("-------Correlation vector with lags-------\n");
-	PrintArray(corr_lags, 1, corr_length);
-	
-	printf("-------Correlation cefficient-------\n");
-	PrintArray(corr_coef, 1, 1);
-	
-	
-	
-	//autocorrelation of the residuals (with a lag of one time step and a lag of two time steps) (n x 1)
-	//-----------
-
+	printf("\n");
 	return 0;
 }
 
@@ -326,7 +268,10 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	// Field to hold arm_matrix_instance_f32 errors
 	arm_status status;
 	// Number of columns
-	int w = Length/Measurement_dimension;
+	int w = Length / Measurement_dimension;
+	
+	printf("InputArray: \n");
+	PrintArray(InputArray, Measurement_dimension, w);
 
 	// Initialize x_predict matrix
 	float x_predict_data[State_dimension]; //(m x 1)
@@ -364,6 +309,10 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	float temp_n_x_1_data[Measurement_dimension];
 	arm_matrix_instance_f32 temp_n_x_1 = {Measurement_dimension, 1, temp_n_x_1_data};
 	
+	// Initialize temp_n_x_1_2
+	float temp_n_x_1_data_2[Measurement_dimension];
+	arm_matrix_instance_f32 temp_n_x_1_2 = {Measurement_dimension, 1, temp_n_x_1_data_2};
+	
 	// Initialize temp_m_x_1
 	float temp_m_x_1_data[State_dimension];
 	arm_matrix_instance_f32 temp_m_x_1 = {State_dimension, 1, temp_m_x_1_data};
@@ -378,6 +327,9 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	// Initialize h_transpose
 	float h_transpose_data[State_dimension * Measurement_dimension]; //( m x n)
 	arm_matrix_instance_f32 h_transpose = {State_dimension, Measurement_dimension, h_transpose_data};
+	
+	// Initizialize residuals array (n*w)
+	float ResidualArray[Measurement_dimension * w];
 	
 	// Calculate h_transpose
 	arm_mat_trans_f32(&(kstate->h), &h_transpose);
@@ -406,35 +358,21 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 		if(status != ARM_MATH_SUCCESS) {
 			printf("EQ'1 MUL FAIL\n");
 		}
-		// Print X_PREDICT
-		int predict_x;	
-		printf("-----------X_Predict---------\n");
-		for(predict_x = 0 ; predict_x < State_dimension; predict_x++) {
-			printf("%f\n",(float)(x_predict.pData[predict_x]));
-		}
-		// --------------------------------------
-		
+	
 		// Eq'2
 		// temp_m_x_m_1 = F * P
 		arm_mat_mult_f32(&kstate->f, &kstate->p, &temp_m_x_m_1); 			
 		// temp_m_x_m_2 = temp1 * F^T
 		arm_mat_mult_f32(&temp_m_x_m_1, &f_transpose, &temp_m_x_m_2);	
-		// p_predict = temp2 + Q
-		arm_mat_add_f32(&temp_m_x_m_2, &kstate->q, &p_predict);				
-		
-		// Print P_PREDICT
-		int predict_p;	
-		printf("-----------P_Predict---------\n");
-		for(predict_p = 0 ; predict_p < State_dimension * State_dimension; predict_p++) {
-			printf("%f\n",(float)(p_predict.pData[predict_p]));
-		}
-		// --------------------------------------
-		
+				
 		// Eq'3
 		arm_mat_mult_f32(&kstate->h, &p_predict, &temp_n_x_m);	
+	
 		// temp_nm = H * p_predict
 		arm_mat_mult_f32(&temp_n_x_m, &h_transpose, &temp_n_x_n_1);		//temp_nn1 = temp_nm * H^T	
-		arm_mat_add_f32(&temp_n_x_n_1, &kstate->r, &temp_n_x_n_2);		//temp_nn2 = temp_nn1 + R	
+		arm_mat_add_f32(&temp_n_x_n_1, &kstate->r, &temp_n_x_n_2);	
+		
+		//temp_nn2 = temp_nn1 + R	
 		// Perform the inversion
 		status = arm_mat_inverse_f32(&temp_n_x_n_2, &temp_n_x_n_1);
 		// Check for inversion error
@@ -442,7 +380,7 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 			printf("INV FAIL\n");
 			return -1;
 		}
-
+		
 		// temp_m_x_n = H^T * temp_n_x_n_1
 		arm_mat_mult_f32(&h_transpose, &temp_n_x_n_1, &temp_m_x_n);
 		// K = p_predict * temp_m_x_n		
@@ -465,51 +403,52 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 		for (curr_row = 0; curr_row < Measurement_dimension; curr_row++){
 			z_curr_column_data[curr_row] = InputArray[(curr_row * w) + curr_column];
 		}
-		arm_matrix_instance_f32 z_curr_column = {Measurement_dimension, 1, z_curr_column_data};
-
-		// temp_n1 = z_i - temp_n1		
-		arm_mat_sub_f32(&z_curr_column, &temp_n_x_1, &temp_n_x_1);		
 		
+		printf("residual before: \n");
+		PrintArray(temp_n_x_1_2.pData, Measurement_dimension, w);
+		arm_matrix_instance_f32 z_curr_column = {Measurement_dimension, 1, z_curr_column_data};
+		// temp_nx1_2 = z_i - temp_nx1_1		
+		arm_mat_sub_f32(&z_curr_column, &temp_n_x_1, &temp_n_x_1_2);		
+		printf("ResidualArray\n");
+		PrintArray(ResidualArray, Measurement_dimension, w);
+		
+		printf("residual: \n");
+		PrintArray(temp_n_x_1_2.pData, Measurement_dimension, w);
+			
 		// Save this into the residuals (part 3)
-		for(curr_row = 0; curr_row < State_dimension; curr_row++) {
-			kstate->residuals.pData[curr_row * w + curr_column] = (float)(*(temp_n_x_1.pData + curr_row));
+		for(curr_row = 0; curr_row < Measurement_dimension; curr_row++) {
+			ResidualArray[curr_row * w + curr_column] = (float)(*(temp_n_x_1_2.pData + curr_row));
 		}
+
+		printf("ResidualArray\n");
+		PrintArray(ResidualArray, Measurement_dimension, w);
 		
 		// temp_m1 = K * temp_n1
-		arm_mat_mult_f32(&kstate->k, &temp_n_x_1, &temp_m_x_1);		
+		arm_mat_mult_f32(&kstate->k, &temp_n_x_1_2, &temp_m_x_1);		
 		arm_mat_add_f32(&x_predict, &temp_m_x_1, &kstate->x);	
 				
 		// save to filtered array
 		for(curr_row = 0; curr_row < State_dimension; curr_row++) {
 			OutputArray[curr_row * w + curr_column] = (float)(*(kstate->x.pData + curr_row));
 		}
-	
-		printf("----------- Output--------- with w: %d \n", w);
-		int ee, ll;	
-		for(ee = 0 ; ee < State_dimension; ee++) {
-			for(ll = 0; ll< w; ll++){
-				printf("%f, ", (float)(OutputArray[ee*w + ll]));
-			}
-			printf("\n");
-		}
-		// --------------------------------------				
+		
+		printf("OutputArray output\n");
+		PrintArray(OutputArray, State_dimension, w);
+			
 	}
+
+
+
+	//Part 3
+	printf("Res Array: \n");
+	PrintArray(ResidualArray, Measurement_dimension, w);
+	
+	dsp_c(ResidualArray, InputArray, Measurement_dimension, w);
+//	autocorrelation(ResidualArray, Measurement_dimension, w, 1);
 	
 	return 0;
-}
-
-
-
-//print matrix - function provided by Anthony Ugochukwu Ubah
-
-int PrintArray(float *input, int num_rows, int num_columns){
-	int i, j;
-	for (i = 0; i < num_rows; i++){
-		for (j = 0; j < num_columns; j++){
-			printf("%f ", input[num_columns * i + j]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-	return 0;
+	
+	
+	
+	
 }
