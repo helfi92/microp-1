@@ -135,9 +135,9 @@ int main() {
 	Kalmanfilter_C(input, kda, &ks, len, state_dimension, measurement_dimension);
 	
 	// Part 3
-	float dsp_input_2[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //(n x w)
+	float dsp_input[] = {0.1, 2.2, -0.1, 3.5, 4.0, 4.1, 9.9, 0.0, 0.0, 2.3}; //(n x w)
 	//float dsp_input_2[] = {2.0, 4.0, 6.0 ,8.0, 6.0, 4.0}; //(n x w)
-	float dsp_input[] = {0.1, 2.143798, -1.266482, 3.225555, 2.103483, 1.3489227, 7.037164, -5.948739, -1.66637, 1.833214};
+	float dsp_input_2[] = {0.1, 2.143798, -1.266482, 3.225555, 2.103483, 1.3489227, 7.037164, -5.948739, -1.66637, 1.833214};
 	//float dsp_input[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 	
 //	printf("residuals end result:\n");
@@ -190,7 +190,7 @@ int autocorrelation(float* dsp_input, int w, int n, int lag){
 	dsp_c(dsp_input_new, dsp_input_new_2, w - lag, 2);
 }
 
-int dsp_c(float* dsp_input, float* dsp_input_2, int n, int w){		
+int dsp_c(float* dsp_input, float* dsp_input_2, int n, int w){	
 	// Standard Deviation
 	float32_t standard_deviation[w], correlation[w];
 	float32_t mean_diff_input_1[w * n], mean_diff_input_2[w * n];
@@ -269,9 +269,6 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	arm_status status;
 	// Number of columns
 	int w = Length / Measurement_dimension;
-	
-	printf("InputArray: \n");
-	PrintArray(InputArray, Measurement_dimension, w);
 
 	// Initialize x_predict matrix
 	float x_predict_data[State_dimension]; //(m x 1)
@@ -364,7 +361,16 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 		arm_mat_mult_f32(&kstate->f, &kstate->p, &temp_m_x_m_1); 			
 		// temp_m_x_m_2 = temp1 * F^T
 		arm_mat_mult_f32(&temp_m_x_m_1, &f_transpose, &temp_m_x_m_2);	
-				
+		
+		printf("1 before assigning\n");
+//		PrintArray(ResidualArray, Measurement_dimension, w);
+		
+		// p_predict = temp2 + Q
+		arm_mat_add_f32(&temp_m_x_m_2, &(kstate->q), &p_predict);				
+		
+		printf("1 before assigning 2\n");
+//		PrintArray(ResidualArray, Measurement_dimension, w);
+		
 		// Eq'3
 		arm_mat_mult_f32(&kstate->h, &p_predict, &temp_n_x_m);	
 	
@@ -403,18 +409,16 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 		for (curr_row = 0; curr_row < Measurement_dimension; curr_row++){
 			z_curr_column_data[curr_row] = InputArray[(curr_row * w) + curr_column];
 		}
-		
-		printf("residual before: \n");
-		PrintArray(temp_n_x_1_2.pData, Measurement_dimension, w);
 		arm_matrix_instance_f32 z_curr_column = {Measurement_dimension, 1, z_curr_column_data};
+
+		printf("temp_n_x_1_2 before assigning\n");
+		PrintArray(ResidualArray, Measurement_dimension, w);
 		// temp_nx1_2 = z_i - temp_nx1_1		
 		arm_mat_sub_f32(&z_curr_column, &temp_n_x_1, &temp_n_x_1_2);		
-		printf("ResidualArray\n");
-		PrintArray(ResidualArray, Measurement_dimension, w);
 		
-		printf("residual: \n");
-		PrintArray(temp_n_x_1_2.pData, Measurement_dimension, w);
-			
+		printf("temp_n_x_1_2\n");
+		PrintArray(temp_n_x_1_2.pData, Measurement_dimension, 1);
+		
 		// Save this into the residuals (part 3)
 		for(curr_row = 0; curr_row < Measurement_dimension; curr_row++) {
 			ResidualArray[curr_row * w + curr_column] = (float)(*(temp_n_x_1_2.pData + curr_row));
@@ -432,7 +436,7 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 			OutputArray[curr_row * w + curr_column] = (float)(*(kstate->x.pData + curr_row));
 		}
 		
-		printf("OutputArray output\n");
+		printf("printArray output\n");
 		PrintArray(OutputArray, State_dimension, w);
 			
 	}
@@ -442,7 +446,8 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 	//Part 3
 	printf("Res Array: \n");
 	PrintArray(ResidualArray, Measurement_dimension, w);
-	
+		printf("Input Array: \n");
+	PrintArray(InputArray, Measurement_dimension, w);
 	dsp_c(ResidualArray, InputArray, Measurement_dimension, w);
 //	autocorrelation(ResidualArray, Measurement_dimension, w, 1);
 	
