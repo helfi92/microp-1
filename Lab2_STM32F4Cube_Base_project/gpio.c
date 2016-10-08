@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////////////
 //	File Name					: gpio.c
 //	Description				: Code to use the GPIO driver
@@ -10,10 +9,10 @@
 //#include <gpio_example.h>
 #include "gpio.h"
 
-/*Brief: Sets up the desired(refer to header) GPIO pin to output mode
-**			 and initializes its value to 0
-**Params: None
-**Return: None
+/**Brief: Sets up the desired(refer to header) GPIO pin to output mode
+ *			 and initializes its value to 0
+ * Params: None
+ * Return: None
 */
 void gpio_init(void) {
 	// LED + Segments
@@ -43,11 +42,11 @@ void gpio_init(void) {
 	HAL_GPIO_Init(PORT_E, &GPIO_InitDef_digits);
 }
 
-/*Brief: Displays segments to show a number of your choice between [0-9]
-**Params: num: an 'int' representing a digit to display
-**				place: an 'int' representing the indexed segment between 0 to 4 inclusively
-**				decimal: an 'int' set to 1 if you want the decimal in index 1 to be displayed
-**Return: None
+/**Brief: Displays segments to show a number of your choice between [0-9]
+ * Params: num: an 'int' representing a digit to display
+ *				place: an 'int' representing the indexed segment between 0 to 4 inclusively
+ *				decimal: an 'int' set to 1 if you want the decimal in index 1 to be displayed
+ * Return: None
 */
 void gpio_display_number(int num, int place, int decimal) {	
 	// Controlling the digit to display
@@ -232,19 +231,16 @@ void gpio_display_number(int num, int place, int decimal) {
 	}
 }
 
-
-
-
-/*Brief: This displays one of the 4 onscreen LEDS
-**Params: count: an "int" that determines which colour light to display.
-**					0: green
-**					1: orange
-**					2: red
-**					3: blue		
-**Return: None
+/**Brief: This displays one of the 4 onscreen LEDS
+ * Params: index: an "int" that determines which colour light to display.
+ *					0: green
+ *					1: orange
+ *					2: red
+ *					3: blue		
+ * Return: None
 */
-void display_LED(int count){
-	switch(count%4){
+void display_LED(int index){
+	switch(index%4){
 		case 0:
 			HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
@@ -270,4 +266,31 @@ void display_LED(int count){
 			HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_SET);
 			break;
 		}
+}
+
+/**Brief: Takes a number to display to the 7 segment display.
+ *Params: num: a 'float' that represents the number to display | 
+ *		  index: an 'int' that corresponds to  which digit index to dislay (from 0 to 2 inclusively)
+ *Return: None
+*/
+void refresh_display(float number, int index) {
+	int parsedInt = (int) (number * 10);
+	int decimal, ones, tens;
+	decimal = parsedInt % 10;
+	ones = (parsedInt / 10) % 10;
+	tens = (parsedInt / 100) % 10;
+	switch(index%4){
+		case 0:
+			gpio_display_number(tens,0, 0);
+			break;
+		case 1:
+			gpio_display_number(ones,1, 1);
+			break;
+		case 2:
+			gpio_display_number(decimal,2, 0);
+			break;
+		case 3:
+			gpio_display_number(12,4, 0);
+			break;
+	}
 }
