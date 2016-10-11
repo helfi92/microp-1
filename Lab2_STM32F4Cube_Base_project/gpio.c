@@ -240,57 +240,39 @@ void gpio_display_number(int num, int place, int decimal) {
  * Return: None
 */
 void display_LED(int index){
-	switch(index%4){
-		case 0:
-			HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
-			break;
-		case 1:
-			HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
-			break;
-		case 2:
-			HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
-			break;
-		case 3:
-			HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_SET);
-			break;
-		}
-}
-
-/**Brief: Takes a number to display to the 7 segment display.
- *Params: num: a 'float' that represents the number to display | 
- *		  index: an 'int' that corresponds to  which digit index to dislay (from 0 to 2 inclusively)
- *Return: None
-*/
-void refresh_display(float number, int index) {
-	int parsedInt = (int) (number * 10);
-	int decimal, ones, tens;
-	decimal = parsedInt % 10;
-	ones = (parsedInt / 10) % 10;
-	tens = (parsedInt / 100) % 10;
-	switch(index%4){
-		case 0:
-			gpio_display_number(tens,0, 0);
-			break;
-		case 1:
-			gpio_display_number(ones,1, 1);
-			break;
-		case 2:
-			gpio_display_number(decimal,2, 0);
-			break;
-		case 3:
-			gpio_display_number(12,4, 0);
-			break;
+	if (index == 4){
+		HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
+	}	
+	else {	
+		switch(index%4){
+			case 0:
+				HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
+				break;
+			case 1:
+				HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
+				break;
+			case 2:
+				HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_RESET);
+				break;
+			case 3:
+				HAL_GPIO_WritePin(PORT_D, PIN_GREEN, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_ORANGE, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_RED, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PORT_D, PIN_BLUE, GPIO_PIN_SET);
+				break;
+			}
 	}
 }
+

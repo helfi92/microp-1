@@ -50,7 +50,7 @@ void SystemClock_Config(void){
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5)!= HAL_OK){Error_Handler(RCC_CONFIG_FAIL);};
 	
 	/*Configures SysTick to provide 1 ms timeouts.*/
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/100000);
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
 	/* This function sets the source clock for the internal SysTick Timer to be the maximum,
 	   in our case, HCLK is now 168MHz*/
