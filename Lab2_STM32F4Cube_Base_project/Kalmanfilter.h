@@ -1,7 +1,7 @@
-#define Q_INIT 2.0
-#define R_INIT 50.0
+#define Q_INIT 1.0
+#define R_INIT 10.0
 #define X_INIT 0.0
-#define P_INIT 300.0
+#define P_INIT 100.0
 #define K_INIT 0.0
 #define F_INIT 1.0
 #define H_INIT 1.0

@@ -65,14 +65,14 @@ int main(void){
 
 	gpio_init();
 	adc_init();
-	piezo_adc_init();
+	//piezo_adc_init();
 
 	while(1) {
 
 		// run every 1 ms. This can also be achieved with HAL_Delay(100) for the current settengs
 		if(systick_flag == 1) { // Please look in stm32f4xx_it.c to understand how this variable is set and used
 			systick_flag = 0;
-
+			
 			//how often poll the adc temperature sensor
 			if(adc_counter++ == 100) { // increments every 100 ms, used to count when 100 ms has passed
 				adc_counter = 0;
@@ -82,10 +82,10 @@ int main(void){
 				Kalmanfilter_C(&temperature, kalmanOutput, &ks, LEN);		
 				// printf("ADC voltage = %f Volts,  temperature = %f\n", ADC_val, temperature);	
 				
-				
 				//Piezo sensor
-				piezo_val = piezo_adc();
-				printf("Piezo val = %f, Piezo temperature = %f\n", piezo_val, piezo_adc_to_temperature(piezo_val));
+				//piezo_val = piezo_adc();
+				//printf("Piezo val = %f, Piezo temperature = %f\n", piezo_val, piezo_adc_to_temperature(piezo_val));		
+				
 			}
 			
 			//how often to update the display value
@@ -103,7 +103,7 @@ int main(void){
 			}
 
 			if (alarm_counter++ >= 100){
-				if(temperature_sample > 60.0) {
+				if(temperature_sample > 34.0) {
 					alarm_counter = 0;
 					display_LED(tick);
 				} else {
