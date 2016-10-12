@@ -116,31 +116,6 @@ int main(void){
 		}	
 	}
 }
-/**Brief: Takes a number to display to the 7 segment display.
- *Params: num: a 'float' that represents the number to display 
- *		  index: an 'int' that corresponds to  which digit index to dislay (from 0 to 2 inclusively)
- *Return: None
-*/
-void refresh_display(float number, int index) {
-	int parsedInt = (int) (number * 10);
-	int decimal, ones, tens;
-	decimal = parsedInt % 10;
-	ones = (parsedInt / 10) % 10;
-	tens = (parsedInt / 100) % 10;
-	switch(index%4){
-		case 0:
-			gpio_display_number(tens,0, 0);
-			break;
-		case 1:
-			gpio_display_number(ones,1, 1);
-			break;
-		case 2:
-			gpio_display_number(decimal,2, 0);
-			break;
-		case 3:
-			gpio_display_number(12,4, 0);
-			break;
-	}
-}
+
 
 

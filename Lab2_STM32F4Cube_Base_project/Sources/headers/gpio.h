@@ -50,6 +50,6 @@ void gpio_init(void);
 void gpio_display_number(int num, int place, int decimal);
 void update_display(int count);
 void display_LED(int count);
-//void refresh_display(float number, int index);
+void refresh_display(float number, int index);
 
 #endif
