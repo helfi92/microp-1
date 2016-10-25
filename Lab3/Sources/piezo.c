@@ -24,18 +24,18 @@ void piezo_adc_init(void) {
 	ADC_MultiModeTypeDef PIEZO_ADC_Mode; 														// define ADC1 mode struct
 	
 	/*  initialize ADC init struct */
-	PIEZO_ADC_Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;					// ADC Clock frequency 42MHz (168/4)
-	PIEZO_ADC_Init.Resolution = ADC_RESOLUTION_12B;										// 12 bit resolution, better but slower
-	PIEZO_ADC_Init.DataAlign = ADC_DATAALIGN_RIGHT;										// align the 12 bits data at the right of the 32 bits words
-	PIEZO_ADC_Init.ScanConvMode = DISABLE;														// single channel mode
-	PIEZO_ADC_Init.EOCSelection = ADC_EOC_SEQ_CONV;										// perform ADC conversions without having to read all conversion data
-	PIEZO_ADC_Init.ContinuousConvMode = DISABLE;											// single mode convertion
-	PIEZO_ADC_Init.DMAContinuousRequests = DISABLE;										// single mode DMA request
-	PIEZO_ADC_Init.NbrOfConversion = 1;																// one conversion
-	PIEZO_ADC_Init.DiscontinuousConvMode = ENABLE;										// enable discountinuous mode
-	PIEZO_ADC_Init.NbrOfDiscConversion = 1;														// one conversion
-	PIEZO_ADC_Init.ExternalTrigConv = ADC_SOFTWARE_START;							// no external trigger
-	PIEZO_ADC_Init.ExternalTrigConvEdge = ADC_SOFTWARE_START;					// no external trigger
+	PIEZO_ADC_Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;					
+	PIEZO_ADC_Init.Resolution = ADC_RESOLUTION_12B;										
+	PIEZO_ADC_Init.DataAlign = ADC_DATAALIGN_RIGHT;										
+	PIEZO_ADC_Init.ScanConvMode = DISABLE;														
+	PIEZO_ADC_Init.EOCSelection = ADC_EOC_SEQ_CONV;										
+	PIEZO_ADC_Init.ContinuousConvMode = DISABLE;											
+	PIEZO_ADC_Init.DMAContinuousRequests = DISABLE;										
+	PIEZO_ADC_Init.NbrOfConversion = 1;																
+	PIEZO_ADC_Init.DiscontinuousConvMode = ENABLE;										
+	PIEZO_ADC_Init.NbrOfDiscConversion = 1;														
+	PIEZO_ADC_Init.ExternalTrigConv = ADC_SOFTWARE_START;							
+	PIEZO_ADC_Init.ExternalTrigConvEdge = ADC_SOFTWARE_START;					
 	
 	/* initialize ADC handle struct */
 	ADC_Piezo_Handle.Instance = PIEZO_ADC;
@@ -81,13 +81,8 @@ float piezo_adc(void) {
 	if(HAL_ADC_PollForConversion(&ADC_Piezo_Handle, POLL_TIMEOUT) == HAL_OK) {
 		val = HAL_ADC_GetValue(&ADC_Piezo_Handle);
 	}
-		
+	printf("value of peizo: %f\n",val);
 	HAL_ADC_Stop(&ADC_Piezo_Handle);
-	return (val*3.0)/4096.0;
+	return (val)/100.0;
 }
-
-float piezo_adc_to_temperature(float piezo_val) {
-	return (piezo_val - 0.76) / 0.0025 + 25;
-}
-
 
